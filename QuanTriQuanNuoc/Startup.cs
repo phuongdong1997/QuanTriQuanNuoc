@@ -1,3 +1,4 @@
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using QuanTriQuanNuoc.Data;
 using QuanTriQuanNuoc.Entites;
+using QuanTriQuanNuoc.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,7 +52,8 @@ namespace QuanTriQuanNuoc
                 options.User.RequireUniqueEmail = true;
             });
 
-            services.AddControllersWithViews();
+            services.AddControllersWithViews()
+                 .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<CategoryCreateRequestValidator>());
             services.AddTransient<DbInitializer>();
             services.AddSwaggerGen(c =>
             {
