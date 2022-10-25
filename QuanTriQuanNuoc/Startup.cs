@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 using QuanTriQuanNuoc.Data;
 using QuanTriQuanNuoc.Entites;
 using System;
@@ -51,6 +52,10 @@ namespace QuanTriQuanNuoc
 
             services.AddControllersWithViews();
             services.AddTransient<DbInitializer>();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Knowledge Space API", Version = "v1" });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,9 +80,14 @@ namespace QuanTriQuanNuoc
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllerRoute(
-                    name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.OAuthClientId("swagger");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "QuanTriHangHoa API V1");
             });
         }
     }
