@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using QuanTriQuanNuoc.Data;
 using QuanTriQuanNuoc.Entites;
+using QuanTriQuanNuoc.Identity;
 using QuanTriQuanNuoc.Models;
+using QuanTriQuanNuoc.Service;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +40,19 @@ namespace QuanTriQuanNuoc
             services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
+            var builder = services.AddIdentityServer(options =>
+            {
+                options.Events.RaiseErrorEvents = true;
+                options.Events.RaiseInformationEvents = true;
+                options.Events.RaiseFailureEvents = true;
+                options.Events.RaiseSuccessEvents = true;
+            })
+            .AddInMemoryApiResources(Config.Apis)
+            .AddInMemoryClients(Config.Clients)
+            .AddInMemoryIdentityResources(Config.Ids)
+            .AddAspNetIdentity<User>()
+            .AddDeveloperSigningCredential();
+
             services.Configure<IdentityOptions>(options =>
             {
                 // Default Lockout settings.
@@ -54,7 +70,20 @@ namespace QuanTriQuanNuoc
 
             services.AddControllersWithViews()
                  .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<CategoryCreateRequestValidator>());
+            services.AddRazorPages(options =>
+            {
+                options.Conventions.AddAreaFolderRouteModelConvention("Identity", "/Account/", model =>
+                {
+                    foreach (var selector in model.Selectors)
+                    {
+                        var attributeRouteModel = selector.AttributeRouteModel;
+                        attributeRouteModel.Order = -1;
+                        attributeRouteModel.Template = attributeRouteModel.Template.Remove(0, "Identity".Length);
+                    }
+                });
+            });
             services.AddTransient<DbInitializer>();
+            services.AddTransient<IEmailSender, EmailSenderService>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Knowledge Space API", Version = "v1" });
@@ -76,14 +105,17 @@ namespace QuanTriQuanNuoc
             }
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseIdentityServer();
 
+            app.UseAuthentication();
             app.UseRouting();
 
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapControllers();
+                endpoints.MapDefaultControllerRoute();
+                endpoints.MapRazorPages();
             });
 
             app.UseSwagger();
